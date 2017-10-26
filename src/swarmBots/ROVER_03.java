@@ -119,6 +119,8 @@ public class ROVER_03 extends Rover {
 			boolean stuck = false; // just means it did not change locations between requests,
 									// could be velocity limit or obstruction etc.
 			boolean blocked = false;
+			boolean swest=false;
+			boolean nwest=false;
 	
 			// might or might not have a use for this
 			String[] cardinals = new String[4];
@@ -196,17 +198,33 @@ public class ROVER_03 extends Rover {
 				// ***** get TIMER time remaining *****
 				timeRemaining = getTimeRemaining();
 				
-	
+				MapTile[][] scanMapTiles = scanMap.getScanMap();
+				int centerIndex = (scanMap.getEdgeSize() - 1)/2;
 				
 				// ***** MOVING *****
 				// try moving east 5 block if blocked
 				if (blocked) {
 					if(stepCount > 0){
-						moveEast();
 						stepCount -= 1;
+						
+						if(nwest && swest)
+						{
+							if (!(scanMapTiles[centerIndex-1][centerIndex ].getHasRover() 
+								|| scanMapTiles[centerIndex-1][centerIndex ].getTerrain() == Terrain.ROCK
+								|| scanMapTiles[centerIndex-1][centerIndex ].getTerrain() == Terrain.NONE)) {
+							moveWest();
+							}
+						}
+						if (!(scanMapTiles[centerIndex+1][centerIndex ].getHasRover() 
+								|| scanMapTiles[centerIndex+1][centerIndex ].getTerrain() == Terrain.ROCK
+								|| scanMapTiles[centerIndex+1][centerIndex ].getTerrain() == Terrain.NONE)) {
+						moveEast();
+						}
+						
 					}
 					else {
 						blocked = false;
+						
 						//reverses direction after being blocked and side stepping
 						goingSouth = !goingSouth;
 					}
@@ -214,8 +232,7 @@ public class ROVER_03 extends Rover {
 				} else {
 	
 					// pull the MapTile array out of the ScanMap object
-					MapTile[][] scanMapTiles = scanMap.getScanMap();
-					int centerIndex = (scanMap.getEdgeSize() - 1)/2;
+					
 					// tile S = y + 1; N = y - 1; E = x + 1; W = x - 1
 	
 					if (goingSouth) {
@@ -223,12 +240,23 @@ public class ROVER_03 extends Rover {
 						// (scanMap may be old data by now)
 						if (scanMapTiles[centerIndex][centerIndex +1].getHasRover() 
 								|| scanMapTiles[centerIndex][centerIndex +1].getTerrain() == Terrain.ROCK
-								|| scanMapTiles[centerIndex][centerIndex +1].getTerrain() == Terrain.SAND
 								|| scanMapTiles[centerIndex][centerIndex +1].getTerrain() == Terrain.NONE) {
 							blocked = true;
-							stepCount = 5;  //side stepping
+							stepCount = 5; 
+							if (scanMapTiles[centerIndex+1][centerIndex ].getHasRover() 
+									|| scanMapTiles[centerIndex+1][centerIndex ].getTerrain() == Terrain.ROCK
+									|| scanMapTiles[centerIndex+1][centerIndex ].getTerrain() == Terrain.NONE)
+							{
+								swest=true;
+							}//side stepping
+							else if(scanMapTiles[centerIndex-1][centerIndex ].getHasRover() 
+									|| scanMapTiles[centerIndex-1][centerIndex ].getTerrain() == Terrain.ROCK
+									|| scanMapTiles[centerIndex-1][centerIndex ].getTerrain() == Terrain.NONE)
+							{
+								swest=false;
+							}
 						} else {
-							// request to server to move
+							
 							moveSouth();
 
 						}
@@ -237,12 +265,25 @@ public class ROVER_03 extends Rover {
 						// check scanMap to see if path is blocked to the north
 						// (scanMap may be old data by now)
 						
+							
+						
 						if (scanMapTiles[centerIndex][centerIndex -1].getHasRover() 
 								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.ROCK
-								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.SAND
 								|| scanMapTiles[centerIndex][centerIndex -1].getTerrain() == Terrain.NONE) {
 							blocked = true;
 							stepCount = 5;  //side stepping
+							if (scanMapTiles[centerIndex+1][centerIndex ].getHasRover() 
+									|| scanMapTiles[centerIndex+1][centerIndex ].getTerrain() == Terrain.ROCK
+									|| scanMapTiles[centerIndex+1][centerIndex ].getTerrain() == Terrain.NONE)
+							{
+								nwest=true;
+							}
+							else if(scanMapTiles[centerIndex-1][centerIndex ].getHasRover() 
+									|| scanMapTiles[centerIndex-1][centerIndex ].getTerrain() == Terrain.ROCK
+									|| scanMapTiles[centerIndex-1][centerIndex ].getTerrain() == Terrain.NONE)
+							{
+								nwest=false;
+							}
 						} else {
 							// request to server to move
 							moveNorth();			
