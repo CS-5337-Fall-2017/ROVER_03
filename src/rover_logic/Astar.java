@@ -19,7 +19,7 @@ import communicationInterface.Communication;
 public class Astar extends PlanetMap
 {
     protected boolean[][][] explored;
-    String url = "http://localhost:3000/api";
+    String url = "http://localhost:2681/api";
     String corp_secret = "gz5YhL70a2";
     String rovername = "ROVER_03";
     Map<Coord, MapTile> globalMap = new HashMap<Coord, MapTile>();

@@ -18,7 +18,15 @@ import MapSupport.MapTile;
 import MapSupport.ScanMap;
 import common.Rover;
 import communicationInterface.Communication;
+import communicationInterface.RoverDetail;
+import communicationInterface.ScienceDetail;
+import enums.RoverConfiguration;
+import enums.RoverDriveType;
+import enums.RoverMode;
+import enums.RoverToolType;
+import enums.Science;
 import enums.Terrain;
+import rover_logic.Astar;
 
 /*
  * The seed that this program is built on is a chat program example found here:
@@ -80,6 +88,8 @@ public class ROVER_03 extends Rover {
 	 * The Rover Main instantiates and runs the rover as a runnable thread
 	 * 
 	 */
+	
+	// Coord maxCoord = new Coord(0,0);
 	private void run() throws IOException, InterruptedException {
 		// Make a socket for connection to the RoverControlProcessor
 		Socket socket = null;
@@ -121,7 +131,7 @@ public class ROVER_03 extends Rover {
 			boolean blocked = false;
 			boolean swest=false;
 			boolean nwest=false;
-	
+	char dirChar=' ';
 			// might or might not have a use for this
 			String[] cardinals = new String[4];
 			cardinals[0] = "N";
@@ -151,15 +161,17 @@ public class ROVER_03 extends Rover {
 			targetLocation = getTargetLocation();
 			System.out.println(rovername + " TARGET_LOC " + targetLocation);
 			
+			int xsc=-1;
+			int ysc=-1;
 			
 	        // **** Define the communication parameters and open a connection to the 
 			// SwarmCommunicationServer restful service through the Communication.java class interface
 	        String url = "http://localhost:2681/api"; // <----------------------  this will have to be changed if multiple servers are needed
 	        String corp_secret = "gz5YhL70a2"; // not currently used - for future implementation
 	
-	        Communication com = new Communication(url, rovername, corp_secret);
+	        Communication com = new Communication(url, rovername, "open_secret");
 	
-
+	        Astar aStar=new Astar();
 			/**
 			 *  ####  Rover controller process loop  ####
 			 *  This is where all of the rover behavior code will go
@@ -167,6 +179,8 @@ public class ROVER_03 extends Rover {
 			 */
 			while (true) {                     //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 		
+
+
 				// **** Request Rover Location from RCP ****
 				currentLoc = getCurrentLocation();
 				System.out.println(rovername + " currentLoc at start: " + currentLoc);
@@ -175,7 +189,7 @@ public class ROVER_03 extends Rover {
 				// to check for stuckness and blocked later
 				previousLoc = currentLoc;		
 				
-				
+			
 
 				// ***** do a SCAN *****
 				// gets the scanMap from the server based on the Rover current location
@@ -198,11 +212,73 @@ public class ROVER_03 extends Rover {
 				// ***** get TIMER time remaining *****
 				timeRemaining = getTimeRemaining();
 				
+				RoverDetail roverDetail = new RoverDetail();
+				
+				//ScienceDetail scienceDetail = analyzeAndGetSuitableScience();
 				MapTile[][] scanMapTiles = scanMap.getScanMap();
 				int centerIndex = (scanMap.getEdgeSize() - 1)/2;
+				//adding science/harvest
+				if(scanMapTiles[centerIndex][centerIndex].getScience()==Science.MINERAL)
+				{
+				gatherScience(getCurrentLocation());
+				}
+		
+					for(int i=0;i<scanMapTiles.length;i++)
+					{
+						for (int j = 0; j < scanMapTiles.length; j++) 
+						{
+							if(scanMapTiles[i][j].getScience()==Science.MINERAL	)
+							{
+								xsc=i;
+								ysc=j;
+								break;
+							}
+						}
+					}
+					
+				if(xsc!=-1)	
+				{
+					RoverConfiguration roverConfiguration = RoverConfiguration
+							.valueOf( rovername );
+					RoverDriveType driveType = RoverDriveType.valueOf(
+							roverConfiguration.getMembers().get( 0 ) );
+					RoverToolType tool1 = RoverToolType.getEnum(
+							roverConfiguration.getMembers().get( 1 ) );
+					RoverToolType tool2 = RoverToolType.getEnum(
+							roverConfiguration.getMembers().get( 2 ) );
+
+					aStar.addScanMap( doScan(), getCurrentLocation(), tool1,
+							tool2 );
+	
+				dirChar =aStar.findPath(getCurrentLocation(), new Coord(getCurrentLocation().xpos-3+xsc,getCurrentLocation().ypos-3 +ysc),RoverDriveType.TREADS );
+				
+				if(dirChar == 'S'){
+					System.out.println("moving South, because I'm directed to go: "+dirChar);
+					moveSouth();
+				}
+				if(dirChar == 'W'){
+					System.out.println("moving West, because I'm directed to go: "+dirChar);
+					moveWest();
+				}
+				if(dirChar == 'E'){
+					System.out.println("moving East, because I'm directed to go: "+dirChar);
+					moveEast();
+				}
+				if(dirChar == 'N'){
+					System.out.println("moving North, because I'm directed to go: "+dirChar);
+					moveNorth();
+				}
+				if(dirChar == 'U'){
+					System.out.println("got U, because I'm directed to go: "+dirChar);
+					roverDetail.setRoverMode( RoverMode.EXPLORE );
+					xsc=-1;
+				}
 				
 				// ***** MOVING *****
 				// try moving east 5 block if blocked
+				}
+				else
+				{
 				if (blocked) {
 					if(stepCount > 0){
 						stepCount -= 1;
@@ -290,11 +366,13 @@ public class ROVER_03 extends Rover {
 						}					
 					}
 				}
+				}
+				sendRoverDetail(RoverMode.GATHER);
 	
 				// another call for current location
 				currentLoc = getCurrentLocation();
 
-	
+	com.postScanMapTiles(currentLoc, scanMap.getScanMap());
 				// test for stuckness
 				stuck = currentLoc.equals(previousLoc);	
 				
@@ -307,7 +385,8 @@ public class ROVER_03 extends Rover {
 			
 			
 		// This catch block hopefully closes the open socket connection to the server
-		} catch (Exception e) {
+		}
+		catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} finally {

@@ -167,7 +167,8 @@ public class Rover {
 
 	// sends a SCAN request to the server and puts the result in the scanMap
 	// array
-	protected ScanMap doScan() throws IOException {
+	protected ScanMap doScan() throws IOException 
+	{
 		Gson gson = new GsonBuilder().setPrettyPrinting()
 				.enableComplexMapKeySerialization().create();
 		sendTo_RCP.println("SCAN");
@@ -227,7 +228,7 @@ public class Rover {
 		ScienceDetail minDistanceScienceDetail = null;
 		try {
 			Communication communication = new Communication(
-					"http://localhost:3000/api", rovername, "open_secret");
+					"http://localhost:2681/api", rovername, "open_secret");
 
 			ScienceDetail[] scienceDetails = communication
 					.getAllScienceDetails();
@@ -461,7 +462,7 @@ public class Rover {
 			Coord currentLoc = getCurrentLocation();
 			MapTile[][] scanMapTiles = doScan().getScanMap();
 			Communication communication = new Communication(
-					"http://localhost:3000/api", rovername, "open_secret");
+					"http://localhost:2681/api", rovername, "open_secret");
 			communication.postScanMapTiles(currentLoc, scanMapTiles);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -494,7 +495,7 @@ public class Rover {
 			roverDetail.setToolType2(tollType2);
 
 			Communication communication = new Communication(
-					"http://localhost:3000/api", rovername, "open_secret");
+					"http://localhost:2681/api", rovername, "open_secret");
 			communication.sendRoverDetail(roverDetail);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -508,7 +509,7 @@ public class Rover {
 
 		try {
 			Communication communication = new Communication(
-					"http://localhost:3000/api", rovername, "open_secret");
+					"http://localhost:2681/api", rovername, "open_secret");
 			return communication.getAllRoverDetails();
 		} catch (Exception e) {
 			System.err.println(
@@ -522,7 +523,7 @@ public class Rover {
 
 		try {
 			Communication communication = new Communication(
-					"http://localhost:3000/api", rovername, "open_secret");
+					"http://localhost:2681/api", rovername, "open_secret");
 			communication.markScienceForGather(coord);
 			sendTo_RCP.println("GATHER");
 		} catch (Exception e) {
